@@ -1,6 +1,8 @@
-import { Modal, Radio, Form, Input, Button, Row, Col, Checkbox } from "antd";
+import { Modal, Radio, Form, Input, Button, Row, Col, Checkbox, message } from "antd";
 import { useState, useRef, useEffect } from "react";
-import {getCaptcha} from "../api/user"
+import { getCaptcha, userIsExist, addUser } from "../api/user";
+import { initUserInfo, changeLoginStatus } from "../redux/userSlice";
+import { useDispatch } from "react-redux";
 
 import styles from "../css/LoginForm.module.css";
 
@@ -10,6 +12,7 @@ function LoginForm(props) {
     const [value, setValue] = useState(1);
     const loginFormRef = useRef();
     const registerFormRef = useRef();
+    const dispatch = useDispatch();
 
     // 登录表单的状态数据
     const [loginInfo, setLoginInfo] = useState({
@@ -20,8 +23,8 @@ function LoginForm(props) {
     });
     // 注册表单的状态数据
     const [registerInfo, setRegisterInfo] = useState({
-        loginId : "",
-        nickname : "",
+        loginId: "",
+        nickname: "",
         captcha: "",
     })
 
@@ -29,8 +32,8 @@ function LoginForm(props) {
 
 
     useEffect(() => {
-      captchaClickHandle();
-    },[props.isShow])
+        captchaClickHandle();
+    }, [props.isShow])
 
 
     function handleOk() { }
@@ -43,8 +46,36 @@ function LoginForm(props) {
 
     function loginHandle() { }
 
-    function registerHandle(){
+    function handleCancel() {
+        // 清空上一次的内容
+        setRegisterInfo({
+            loginId: "",
+            nickname: "",
+            captcha: "",
+        })
+        setLoginInfo({
+            loginId: "",
+            loginPwd: "",
+            captcha: "",
+            remember: false
+        })
+        props.closeModal();
+    }
 
+    async function registerHandle() {
+        const result = await addUser(registerInfo);
+        if (result.data) {
+            message.success("用户注册成功，默认密码为 123456");
+            // 还需要将用户的信息存储到数据仓库里面
+            dispatch(initUserInfo(result.data));
+            // 将数据仓库的登录状态进行修改
+            dispatch(changeLoginStatus(true));
+            // 关闭登录注册的弹出框
+            handleCancel();
+        } else {
+            message.warning(result.msg);
+            captchaClickHandle();
+        }
     }
 
 
@@ -60,13 +91,25 @@ function LoginForm(props) {
         setInfo(obj);
     }
 
-    function captchaClickHandle(){}
-
-
-    async function captchaClickHandle(){
+    async function captchaClickHandle() {
         const result = await getCaptcha();
         setCaptcha(result);
     }
+
+    /**
+     * 验证登录账号是否存在
+     */
+    async function checkLoginIdIsExist() {
+        if (registerInfo.loginId) {
+            const { data } = await userIsExist(registerInfo.loginId);
+            if (data) {
+                // 该 loginId 已经注册过了
+                return Promise.reject("该用户已经注册过了");
+            }
+        }
+
+    }
+
 
     let container = null;
     if (value === 1) {
@@ -179,90 +222,90 @@ function LoginForm(props) {
         // 注册面板的 JSX
         container = (
             <div className={styles.container}>
-            <Form
-                name="basic2"
-                autoComplete="off"
-                ref={registerFormRef}
-                onFinish={registerHandle}
-            >
-                <Form.Item
-                    label="登录账号"
-                    name="loginId"
-                    rules={[
-                        {
-                            required: true,
-                            message: "请输入账号，仅此项为必填项",
-                        },
-                        // 验证用户是否已经存在
-                        // { validator: checkLoginIdIsExist },
-                    ]}
-                    validateTrigger='onBlur'
+                <Form
+                    name="basic2"
+                    autoComplete="off"
+                    ref={registerFormRef}
+                    onFinish={registerHandle}
                 >
-                    <Input
-                        placeholder="请输入账号"
-                        value={registerInfo.loginId}
-                        onChange={(e) => updateInfo(registerInfo, e.target.value, 'loginId', setRegisterInfo)}
-                    />
-                </Form.Item>
-
-                <Form.Item
-                    label="用户昵称"
-                    name="nickname"
-                >
-                    <Input
-                        placeholder="请输入昵称，不填写默认为新用户xxx"
-                        value={registerInfo.nickname}
-                        onChange={(e) => updateInfo(registerInfo, e.target.value, 'nickname', setRegisterInfo)}
-                    />
-                </Form.Item>
-
-                <Form.Item
-                    name="registercaptcha"
-                    label="验证码"
-                    rules={[
-                        {
-                            required: true,
-                            message: '请输入验证码',
-                        },
-                    ]}
-                >
-                    <Row align="middle">
-                        <Col span={16}>
-                            <Input
-                                placeholder="请输入验证码"
-                                value={registerInfo.captcha}
-                                onChange={(e) => updateInfo(registerInfo, e.target.value, 'captcha', setRegisterInfo)}
-                            />
-                        </Col>
-                        <Col span={6}>
-                            <div
-                                className={styles.captchaImg}
-                                onClick={captchaClickHandle}
-                                dangerouslySetInnerHTML={{ __html: captcha }}
-                            ></div>
-                        </Col>
-                    </Row>
-                </Form.Item>
-
-                <Form.Item
-                    wrapperCol={{
-                        offset: 5,
-                        span: 16,
-                    }}
-                >
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        style={{ marginRight: 20 }}
+                    <Form.Item
+                        label="登录账号"
+                        name="loginId"
+                        rules={[
+                            {
+                                required: true,
+                                message: "请输入账号，仅此项为必填项",
+                            },
+                            // 验证用户是否已经存在
+                            { validator: checkLoginIdIsExist },
+                        ]}
+                        validateTrigger='onBlur'
                     >
-                        注册
-                    </Button>
-                    <Button type="primary" htmlType="submit">
-                        重置
-                    </Button>
-                </Form.Item>
-            </Form>
-        </div>
+                        <Input
+                            placeholder="请输入账号"
+                            value={registerInfo.loginId}
+                            onChange={(e) => updateInfo(registerInfo, e.target.value, 'loginId', setRegisterInfo)}
+                        />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="用户昵称"
+                        name="nickname"
+                    >
+                        <Input
+                            placeholder="请输入昵称，不填写默认为新用户xxx"
+                            value={registerInfo.nickname}
+                            onChange={(e) => updateInfo(registerInfo, e.target.value, 'nickname', setRegisterInfo)}
+                        />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="registercaptcha"
+                        label="验证码"
+                        rules={[
+                            {
+                                required: true,
+                                message: '请输入验证码',
+                            },
+                        ]}
+                    >
+                        <Row align="middle">
+                            <Col span={16}>
+                                <Input
+                                    placeholder="请输入验证码"
+                                    value={registerInfo.captcha}
+                                    onChange={(e) => updateInfo(registerInfo, e.target.value, 'captcha', setRegisterInfo)}
+                                />
+                            </Col>
+                            <Col span={6}>
+                                <div
+                                    className={styles.captchaImg}
+                                    onClick={captchaClickHandle}
+                                    dangerouslySetInnerHTML={{ __html: captcha }}
+                                ></div>
+                            </Col>
+                        </Row>
+                    </Form.Item>
+
+                    <Form.Item
+                        wrapperCol={{
+                            offset: 5,
+                            span: 16,
+                        }}
+                    >
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            style={{ marginRight: 20 }}
+                        >
+                            注册
+                        </Button>
+                        <Button type="primary" htmlType="submit">
+                            重置
+                        </Button>
+                    </Form.Item>
+                </Form>
+            </div>
         );
     }
 
