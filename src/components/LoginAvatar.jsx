@@ -1,7 +1,9 @@
 import React from 'react';
 import { Button, List, Popover, Avatar, Image } from "antd";
 import { useSelector } from "react-redux";
-
+import { clearUserInfo,changeLoginStatus} from "../redux/userSlice";
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import styles from "../css/LoginAvatar.module.css";
 import { UserOutlined } from "@ant-design/icons";
 
@@ -10,6 +12,23 @@ function LoginAvatar(props) {
 
 
     const { isLogin, userInfo } = useSelector(state => state.user);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+
+    function listClickHandle(item){
+        if(item === "个人中心"){
+            // 跳转到个人中心
+        } else {
+            // 退出登录
+            // 清除 token
+            localStorage.removeItem("userToken");
+            // 清除状态仓库
+            dispatch(clearUserInfo);
+            dispatch(changeLoginStatus(false));
+            navigate("/");
+        }
+    }
+
 
     let loginStatus = null;
     if (isLogin) {
@@ -20,7 +39,7 @@ function LoginAvatar(props) {
                 size="large"
                 renderItem={(item) => {
                     return (
-                        <List.Item style={{ cursor: "pointer" }}>{item}</List.Item>
+                        <List.Item style={{ cursor: "pointer" }} onClick={()=>listClickHandle(item)}>{item}</List.Item>
                     )
                 }}
             />
