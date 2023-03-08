@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 
 import PageHeader from "../components/PageHeader";
 import IssueItem from "../components/IssueItem";
+import { Pagination } from "antd";
 import { getIssueByPage } from "../api/issue";
+import AddIssueBtn from "../components/AddIssueBtn";
+import Recommend from "../components/Recommend";
+import ScoreRank from "../components/ScoreRank"
 import styles from "../css/Issue.module.css";
 
 function Issues(props) {
@@ -15,6 +19,16 @@ function Issues(props) {
         pageSize: 15, // 每一页显示 15 条数据
         total: 0, // 数据的总条数
     })
+
+    /**
+     * 处理翻译的回调函数
+     */
+    function handlePageChange(current, pageSize) {
+        setPageInfo({
+            current,
+            pageSize,
+        })
+    }
 
     useEffect(() => {
         async function fetchData() {
@@ -48,9 +62,23 @@ function Issues(props) {
                 {/* 左边区域 */}
                 <div className={styles.leftSide}>
                     {issueList}
+                    <div className="paginationContainer">
+                        <Pagination
+                            showQuickJumper
+                            defaultCurrent={1}
+                            {...pageInfo}
+                            onChange={handlePageChange}
+                        />
+                    </div>
                 </div>
                 {/* 右边区域 */}
-                <div className={styles.rightSide}></div>
+                <div className={styles.rightSide}>
+                    <AddIssueBtn />
+                    <div style={{
+                        marginBottom : "30px"
+                    }}><Recommend/></div>
+                    <ScoreRank/>
+                </div>
             </div>
         </div>
     );

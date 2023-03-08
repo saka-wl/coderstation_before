@@ -62,3 +62,13 @@ export function getInfo() {
     method: "GET",
   });
 }
+
+/**
+ * 获取积分前十的用户
+ */
+export function getUserByPointsRank(){
+    return request({
+      url : "/api/user/pointsrank",
+      method : "GET",
+    })
+}

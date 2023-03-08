@@ -23,7 +23,6 @@ function App() {
   useEffect(() =>{
     async function fetchData(){
       const result = await getInfo();
-      console.log(result);
       if(result.data){
         // 说明 token 有效
         // 获取该 id 对应的用户信息，存储到状态仓库
