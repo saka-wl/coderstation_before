@@ -17,10 +17,19 @@ export function getIssueByPage(params) {
  * 新增问答
  */
 export function addIssue(newIssue){
-  console.log(newIssue,'newIssue');
   return request({
     url : "/api/issue/",
     method : "POST",
     data : newIssue
+  })
+}
+
+/**
+ * 根据 id 获取面试题的详情
+ */
+export function getIssueById(issueId){
+  return request({
+    url : `/api/issue/${issueId}`,
+    method : "GET",
   })
 }
