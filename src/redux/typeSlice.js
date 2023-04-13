@@ -11,8 +11,14 @@ const typeSlice = createSlice({
   name: "type",
   initialState: {
     typeList: [], // 存储所有的类型
+    issueTypeId : 'all',
+    bookTypeId : 'all'
   },
-  reducers: {},
+  reducers: {
+    updateIssueTypeId: (state,{payload})=>{
+      state.issueTypeId = payload
+    }
+  },
   // 专门处理异步的 reducer
   extraReducers: (builder) => {
     builder.addCase(getTypeList.fulfilled, (state, {payload}) => {
@@ -21,4 +27,5 @@ const typeSlice = createSlice({
   },
 });
 
+export const {updateIssueTypeId} = typeSlice.actions;
 export default typeSlice.reducer;
