@@ -8,7 +8,7 @@ import { useDispatch } from "react-redux";
 
 import "./css/App.css";
 
-import RouterConfig from "./router/index.jsx"
+import RouteBefore from "./router/RouteBefore"
 import LoginForm from "./components/LoginForm"
 
 const { Header, Footer, Content } = Layout;
@@ -65,7 +65,7 @@ function App() {
       </Header>
       {/* 匹配上的路由页面 */}
       <Content className="content">
-        <RouterConfig />
+        <RouteBefore />
       </Content>
       {/* 底部 */}
       <Footer className="footer">
