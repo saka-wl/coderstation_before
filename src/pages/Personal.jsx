@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import PageHeader from "../components/PageHeader";
 import { useSelector, useDispatch } from 'react-redux';
-import { Card, Image, Upload, Modal, Form, Input, Button } from "antd";
+import { Card, Image, Upload, Modal, Form, Input, Button, message } from "antd";
 import PersonalInfoItem from "../components/PersonalInfoItem";
 import { formatDate } from "../utils/tools";
 import { PlusOutlined } from '@ant-design/icons';
@@ -16,24 +16,39 @@ import styles from "../css/Personal.module.css"
 function Personal(props) {
 
     const { userInfo } = useSelector(state => state.user);
-    console.log(userInfo,'userInfo');
     const dispatch = useDispatch();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [panelName, setPanelName] = useState("");
     const [passwordInfo, setPasswordInfo] = useState({
-        oldpassword : "", // 旧密码
-        newpassword : "", // 新密码
-        passwordConfirm : "", // 确认密码
-    })
+        oldpassword: "", // 旧密码
+        newpassword: "", // 新密码
+        passwordConfirm: "", // 确认密码
+    });
+    // 存储用户修改的项目
+    // 假设用户修改了 qq
+    // editInfo -----> {qq : "123456"}
+    // 假设用户修改了 qq 和 wechat
+    // editInfo -----> {qq : "123456", wechat : "123456"}
+    const [editInfo, setEditInfo] = useState({});
 
     const showModal = (name) => {
         setPanelName(name);
+        // 每一次打开模态框的时候，需要将上一次提交的内容清空
+        setEditInfo({});
         setIsModalOpen(true);
     };
 
     const handleOk = () => {
-        // setIsModalOpen(false);
+
         // 用户点击了确定按钮，表明要确定修改信息
+        // console.log(editInfo);
+        // 派发 action，更改仓库数据以及服务端数据
+        dispatch(updateUserInfoAsync({
+            userId: userInfo._id,
+            newInfo: editInfo
+        }));
+        message.success("更新信息成功");
+        setIsModalOpen(false);
     };
 
     const handleCancel = () => {
@@ -47,25 +62,17 @@ function Personal(props) {
             newInfo: {
                 [key]: newURL
             }
-        }))
-    }
-
-    /**
-     * 用户输入密码时，更新对应的状态
-     */
-    function updatePasswordInfo(newInfo, key){
-        const newPasswordInfo = {...passwordInfo};
-        newPasswordInfo[key] = newInfo.trim();
-        setPasswordInfo(newPasswordInfo);
+        }));
+        message.success("更新头像成功");
     }
 
     /**
      * 验证用户输入的旧密码是否正确
      */
-    async function checkPasswordIsRight(){
-        if(passwordInfo.oldpassword){
-            const {data}= await checkPassword(userInfo._id, passwordInfo.oldpassword);
-            if(!data){
+    async function checkPasswordIsRight() {
+        if (passwordInfo.oldpassword) {
+            const { data } = await checkPassword(userInfo._id, passwordInfo.oldpassword);
+            if (!data) {
                 // 说明密码不正确
                 return Promise.reject("密码不正确");
             }
@@ -75,10 +82,26 @@ function Personal(props) {
     /**
      * 用户输入新密码或者确认密码时，修改对应的状态
      */
-    function updatePasswordInfo(newInfo, key){
-        const newPasswordInfo = {...passwordInfo};
+    function updatePasswordInfo(newInfo, key) {
+        const newPasswordInfo = { ...passwordInfo };
         newPasswordInfo[key] = newInfo.trim();
         setPasswordInfo(newPasswordInfo);
+        if(key === "newpassword"){
+            updateInfo(newInfo, "loginPwd");
+        }
+    }
+
+    /**
+     * 根据用户的输入更新 editInfo
+     */
+    function updateInfo(newInfo, key) {
+        if(key === "nickname" && !newInfo){
+            message.warning("昵称不能为空");
+            return;
+        }
+        const newUserInfo = { ...editInfo };
+        newUserInfo[key] = newInfo;
+        setEditInfo(newUserInfo);
     }
 
     // 模态框中间显示的内容
@@ -90,6 +113,7 @@ function Personal(props) {
                     <Form
                         name="basic1"
                         autoComplete="off"
+                        initialValues={userInfo}
                         onFinish={handleOk}
                     >
                         {/* 登录密码 */}
@@ -97,6 +121,7 @@ function Personal(props) {
                             label="登录密码"
                             name="oldpassword"
                             rules={[
+                                {required: true},
                                 {
                                     validator: checkPasswordIsRight
                                 }
@@ -129,6 +154,7 @@ function Personal(props) {
                             label="确认密码"
                             name="passwordConfirm"
                             rules={[
+                                {required: true},
                                 ({ getFieldValue }) => ({
                                     validator(_, value) {
                                         if (!value || getFieldValue('newpassword') === value) {
@@ -156,7 +182,7 @@ function Personal(props) {
                             <Input
                                 placeholder="昵称可选，默认为新用户"
                                 value={userInfo.nickname}
-                                // onBlur={(e) => updateInfo(e.target.value, 'nickname')}
+                                onBlur={(e) => updateInfo(e.target.value, 'nickname')}
                             />
                         </Form.Item>
 
@@ -176,9 +202,105 @@ function Personal(props) {
             break;
         }
         case "社交账号": {
+            modalContent = (
+                <>
+                    <Form
+                        name="basic2"
+                        initialValues={userInfo}
+                        autoComplete="off"
+                        onFinish={handleOk}
+                    >
+                        <Form.Item
+                            label="邮箱"
+                            name="mail"
+                        >
+                            <Input
+                                value={userInfo.mail}
+                                placeholder="请填写邮箱"
+                                onChange={(e) => updateInfo(e.target.value, 'mail')}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="QQ号"
+                            name="qq"
+                        >
+                            <Input
+                                value={userInfo.qq}
+                                placeholder="请填写 QQ 号"
+                                onChange={(e) => updateInfo(e.target.value, 'qq')}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="微信"
+                            name="wechat"
+                        >
+                            <Input
+                                value={userInfo.wechat}
+                                placeholder="请填写微信号"
+                                onChange={(e) => updateInfo(e.target.value, 'wechat')}
+                            />
+                        </Form.Item>
+                        <Form.Item
+                            label="github"
+                            name="github"
+                        >
+                            <Input
+                                value={userInfo.github}
+                                placeholder="请填写 github "
+                                onChange={(e) => updateInfo(e.target.value, 'github')}
+                            />
+                        </Form.Item>
+
+                        {/* 确认修改按钮 */}
+                        <Form.Item wrapperCol={{ offset: 5, span: 16 }}>
+                            <Button type="primary" htmlType="submit">
+                                确认
+                            </Button>
+
+                            <Button type="link" htmlType="submit" className="resetBtn">
+                                重置
+                            </Button>
+                        </Form.Item>
+                    </Form>
+                </>
+            );
             break;
         }
         case "个人简介": {
+            modalContent = (
+                <>
+                    <Form
+                        name="basic3"
+                        initialValues={userInfo}
+                        autoComplete="off"
+                        onFinish={handleOk}
+                    >
+                        {/* 自我介绍 */}
+                        <Form.Item
+                            label="自我介绍"
+                            name="intro"
+                        >
+                            <Input.TextArea
+                                rows={6}
+                                value={userInfo.intro}
+                                placeholder="选填"
+                                onChange={(e) => updateInfo(e.target.value, 'intro')}
+                            />
+                        </Form.Item>
+
+                        {/* 确认修改按钮 */}
+                        <Form.Item wrapperCol={{ offset: 5, span: 16 }}>
+                            <Button type="primary" htmlType="submit">
+                                确认
+                            </Button>
+
+                            <Button type="link" htmlType="submit" className="resetBtn">
+                                重置
+                            </Button>
+                        </Form.Item>
+                    </Form>
+                </>
+            );
             break;
         }
     }
@@ -220,13 +342,18 @@ function Personal(props) {
                 {/* 社交账号 */}
                 <div className={styles.row}>
                     <Card title="社交账号" extra={(<div className={styles.edit} onClick={() => showModal("社交账号")}>编辑</div>)}>
-
+                        <PersonalInfoItem info={{ itemName: "邮箱", itemValue: userInfo.mail ? userInfo.mail : "未填写" }} />
+                        <PersonalInfoItem info={{ itemName: "QQ号", itemValue: userInfo.qq ? userInfo.qq : "未填写" }} />
+                        <PersonalInfoItem info={{ itemName: "微信号", itemValue: userInfo.wechat ? userInfo.wechat : "未填写" }} />
+                        <PersonalInfoItem info={{ itemName: "Github", itemValue: userInfo.github ? userInfo.github : "未填写" }} />
                     </Card>
                 </div>
                 {/* 个人简介 */}
                 <div className={styles.row}>
                     <Card title="个人简介" extra={(<div className={styles.edit} onClick={() => showModal("个人简介")}>编辑</div>)}>
-
+                        <p className={styles.intro}>
+                            {userInfo.intro ? userInfo.intro : "未填写"}
+                        </p>
                     </Card>
                 </div>
             </div>

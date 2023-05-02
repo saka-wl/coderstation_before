@@ -75,6 +75,7 @@ export function getUserByPointsRank(){
 
 /**
  * 根据 id 修改用户
+ * {qq:"123456"}
  */
 export function editUser(userId, newUserInfo){
   return request({
